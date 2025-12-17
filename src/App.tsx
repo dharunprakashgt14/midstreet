@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Navigate, Route, Routes, useLocation, useNavigate, useParams } from "react-router-dom";
 import { CATEGORIES, MENU_ITEMS } from "./data";
 import { RequireAuth, useAuth } from "./auth/AuthContext";
@@ -211,6 +211,12 @@ export const App = () => {
     setCart((prev) => prev.filter((c) => c.menuItemId !== id));
   };
 
+  const handleAddMenuItem = (item: Omit<MenuItem, "id">) => {
+    const newId = `item-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+    const newItem: MenuItem = { ...item, id: newId };
+    setMenuItems((prev) => [...prev, newItem]);
+  };
+
   return (
     <div className="ms-app-shell">
       <header className="ms-header">
@@ -301,6 +307,16 @@ export const App = () => {
               element={<TableSelection onSelectTable={handleSelectTable} />}
             />
             <Route
+              path="/order"
+              element={
+                <OrderEntry
+                  // Reuse the same handler used by manual table selection
+                  // so QR-based table detection follows the existing flow.
+                  onSelectTable={handleSelectTable}
+                />
+              }
+            />
+            <Route
               path="/menu"
               element={
                 <MenuView
@@ -351,6 +367,7 @@ export const App = () => {
                     menuItems={menuItems}
                     onUpdateItem={handleUpdateMenuItem}
                     onDeleteItem={handleDeleteMenuItem}
+                    onAddItem={handleAddMenuItem}
                   />
                 }
               />
@@ -406,6 +423,45 @@ const TableSelection = ({ onSelectTable }: TableSelectionProps) => {
       </div>
     </section>
   );
+};
+
+interface OrderEntryProps {
+  onSelectTable: (table: TableNumber) => void;
+}
+
+const OrderEntry = ({ onSelectTable }: OrderEntryProps) => {
+  const location = useLocation();
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    // Read the "table" query parameter once on initial load for QR-based entry.
+    const params = new URLSearchParams(location.search);
+    const rawTable = params.get("table");
+
+    if (!rawTable) {
+      // Missing parameter: fall back to the existing table selection flow.
+      navigate("/", { replace: true });
+      return;
+    }
+
+    const parsed = Number(rawTable);
+    const isValid =
+      Number.isInteger(parsed) && Number.isFinite(parsed) && parsed > 0;
+
+    if (!isValid) {
+      // Invalid parameter: fall back to the existing table selection flow.
+      navigate("/", { replace: true });
+      return;
+    }
+
+    // For valid positive integers, reuse the existing table selection logic.
+    // This keeps all side effects (table state, cart reset, navigation) identical
+    // to the manual "Select Table" flow.
+    onSelectTable(parsed as TableNumber);
+  }, [location.search, navigate, onSelectTable]);
+
+  // This route is purely behavioral: it does not render any new UI.
+  return null;
 };
 
 interface MenuViewProps {
@@ -615,35 +671,37 @@ const OrderStatusView = ({ order, steps }: OrderStatusViewProps) => {
   const currentIndex = steps.indexOf(order.status);
 
   return (
-    <section className="ms-panel">
-      <header className="ms-panel-header">
-        <h1 className="ms-panel-title">Order status</h1>
-        <p className="ms-panel-subtitle">
-          Calm, step-by-step tracking while the bar moves.
-        </p>
-      </header>
-      <div className="ms-status-meta">
-        <span>Bill: {order.billNumber}</span>
-        <span>Table: {order.table}</span>
-        <span>Total: ₹ {order.total}</span>
-      </div>
-      <ol className="ms-status-steps">
-        {steps.map((step, index) => {
-          const state =
-            index < currentIndex
-              ? "done"
-              : index === currentIndex
-              ? "active"
-              : "upcoming";
-          return (
-            <li key={step} className={`ms-status-step ms-status-step-${state}`}>
-              <div className="ms-status-bullet" />
-              <div className="ms-status-label">{step}</div>
-            </li>
-          );
-        })}
-      </ol>
-    </section>
+    <div className="ms-orders-container">
+      <section className="ms-panel">
+        <header className="ms-panel-header">
+          <h1 className="ms-panel-title">Order status</h1>
+          <p className="ms-panel-subtitle">
+            Calm, step-by-step tracking while the bar moves.
+          </p>
+        </header>
+        <div className="ms-status-meta">
+          <span>Bill: {order.billNumber}</span>
+          <span>Table: {order.table}</span>
+          <span>Total: ₹ {order.total}</span>
+        </div>
+        <ol className="ms-status-steps">
+          {steps.map((step, index) => {
+            const state =
+              index < currentIndex
+                ? "done"
+                : index === currentIndex
+                ? "active"
+                : "upcoming";
+            return (
+              <li key={step} className={`ms-status-step ms-status-step-${state}`}>
+                <div className="ms-status-bullet" />
+                <div className="ms-status-label">{step}</div>
+              </li>
+            );
+          })}
+        </ol>
+      </section>
+    </div>
   );
 };
 
@@ -675,115 +733,119 @@ const AdminDashboardView = ({
   };
 
   return (
-    <section className="ms-panel ms-admin">
-      <header className="ms-panel-header ms-admin-header">
-        <div>
-          <h1 className="ms-panel-title">Admin dashboard</h1>
-          <p className="ms-panel-subtitle">
-            Franchise-ready overview with live orders, revenue and stock.
-          </p>
-        </div>
-        <div className="ms-admin-actions">
-          <button
-            type="button"
-            className="ms-secondary-cta"
-            onClick={onOpenStocks}
-          >
-            Stocks Management
-          </button>
-          <button
-            type="button"
-            className="ms-secondary-cta"
-            onClick={handlePrintDaily}
-          >
-            Print daily summary
-          </button>
-        </div>
-      </header>
+    <div className="ms-admin-container">
+      <section className="ms-panel ms-admin">
+        <header className="ms-panel-header ms-admin-header">
+          <div>
+            <h1 className="ms-panel-title">Admin dashboard</h1>
+            <p className="ms-panel-subtitle">
+              Franchise-ready overview with live orders, revenue and stock.
+            </p>
+          </div>
+          <div className="ms-admin-actions">
+            <button
+              type="button"
+              className="ms-secondary-cta"
+              onClick={onOpenStocks}
+            >
+              Stocks Management
+            </button>
+            <button
+              type="button"
+              className="ms-secondary-cta"
+              onClick={handlePrintDaily}
+            >
+              Print daily summary
+            </button>
+          </div>
+        </header>
 
-      <section className="ms-admin-metrics">
-        <div className="ms-metric-card">
-          <span className="ms-metric-label">Total revenue</span>
-          <span className="ms-metric-value">₹ {totalRevenue}</span>
-        </div>
-        <div className="ms-metric-card">
-          <span className="ms-metric-label">Orders today</span>
-          <span className="ms-metric-value">{orders.length}</span>
-        </div>
-        <div className="ms-metric-card">
-          <span className="ms-metric-label">Active orders</span>
-          <span className="ms-metric-value">{activeOrders}</span>
-        </div>
-      </section>
+        <section className="ms-admin-metrics">
+          <div className="ms-metric-card">
+            <span className="ms-metric-label">Total revenue</span>
+            <span className="ms-metric-value">₹ {totalRevenue}</span>
+          </div>
+          <div className="ms-metric-card">
+            <span className="ms-metric-label">Orders today</span>
+            <span className="ms-metric-value">{orders.length}</span>
+          </div>
+          <div className="ms-metric-card">
+            <span className="ms-metric-label">Active orders</span>
+            <span className="ms-metric-value">{activeOrders}</span>
+          </div>
+        </section>
 
-      <section className="ms-admin-grid">
-        <div className="ms-admin-column">
-          <h2 className="ms-admin-section-title">Live orders</h2>
-          <div className="ms-admin-table">
-            <div className="ms-admin-table-head">
-              <span>Bill</span>
-              <span>Table</span>
-              <span>Status</span>
-              <span>Total</span>
-              <span>Actions</span>
-            </div>
-            <div className="ms-admin-table-body">
-              {orders.map((order) => (
-                <div key={order.id} className="ms-admin-table-row">
-                  <span>{order.billNumber}</span>
-                  <span>{order.table}</span>
-                  <span>{order.status}</span>
-                  <span>₹ {order.total}</span>
-                  <span className="ms-admin-row-actions">
-                    <select
-                      value={order.status}
-                      onChange={(e) =>
-                        onUpdateOrderStatus(
-                          order.id,
-                          e.target.value as OrderStep
-                        )
-                      }
-                    >
-                      {ORDER_STEPS.map((step) => (
-                        <option key={step} value={step}>
-                          {step}
-                        </option>
-                      ))}
-                    </select>
-                    <button
-                      type="button"
-                      className="ms-tertiary-cta"
-                      onClick={() => onOpenBill(order)}
-                    >
-                      View bill
-                    </button>
-                  </span>
+        <section className="ms-admin-grid">
+          <div className="ms-admin-column">
+            <h2 className="ms-admin-section-title">Live orders</h2>
+            <div className="ms-admin-table-wrapper">
+              <div className="ms-admin-table">
+                <div className="ms-admin-table-head">
+                  <span>Bill</span>
+                  <span>Table</span>
+                  <span>Status</span>
+                  <span>Total</span>
+                  <span>Actions</span>
                 </div>
-              ))}
+                <div className="ms-admin-table-body">
+                  {orders.map((order) => (
+                    <div key={order.id} className="ms-admin-table-row">
+                      <span>{order.billNumber}</span>
+                      <span>{order.table}</span>
+                      <span>{order.status}</span>
+                      <span>₹ {order.total}</span>
+                      <span className="ms-admin-row-actions">
+                        <select
+                          value={order.status}
+                          onChange={(e) =>
+                            onUpdateOrderStatus(
+                              order.id,
+                              e.target.value as OrderStep
+                            )
+                          }
+                        >
+                          {ORDER_STEPS.map((step) => (
+                            <option key={step} value={step}>
+                              {step}
+                            </option>
+                          ))}
+                        </select>
+                        <button
+                          type="button"
+                          className="ms-tertiary-cta"
+                          onClick={() => onOpenBill(order)}
+                        >
+                          View bill
+                        </button>
+                      </span>
+                    </div>
+                  ))}
+                  {orders.length === 0 && (
+                    <div className="ms-admin-table-empty">
+                      No orders yet today.
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div className="ms-admin-column">
+            <h2 className="ms-admin-section-title">Stock availability</h2>
+            <div className="ms-admin-stock-list">
               {orders.length === 0 && (
+                <div className="ms-admin-table-empty">Use Stocks Management to edit availability.</div>
+              )}
+              {orders.length > 0 && (
                 <div className="ms-admin-table-empty">
-                  No orders yet today.
+                  Stocks managed in the dedicated view.
                 </div>
               )}
             </div>
           </div>
-        </div>
-
-        <div className="ms-admin-column">
-          <h2 className="ms-admin-section-title">Stock availability</h2>
-          <div className="ms-admin-stock-list">
-            {orders.length === 0 && (
-              <div className="ms-admin-table-empty">Use Stocks Management to edit availability.</div>
-            )}
-            {orders.length > 0 && (
-              <div className="ms-admin-table-empty">
-                Stocks managed in the dedicated view.
-              </div>
-            )}
-          </div>
-        </div>
+        </section>
       </section>
-    </section>
+    </div>
   );
 };
 
@@ -794,16 +856,24 @@ interface StocksManagementViewProps {
     updates: Partial<Pick<MenuItem, "name" | "price" | "isAvailable">>
   ) => void;
   onDeleteItem: (id: string) => void;
+  onAddItem: (item: Omit<MenuItem, "id">) => void;
 }
 
 const StocksManagementView = ({
   menuItems,
   onUpdateItem,
-  onDeleteItem
+  onDeleteItem,
+  onAddItem
 }: StocksManagementViewProps) => {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [draftName, setDraftName] = useState("");
   const [draftPrice, setDraftPrice] = useState<number>(0);
+  const [showAddForm, setShowAddForm] = useState(false);
+  const [newItemName, setNewItemName] = useState("");
+  const [newItemDesc, setNewItemDesc] = useState("");
+  const [newItemPrice, setNewItemPrice] = useState<number>(0);
+  const [newItemCategory, setNewItemCategory] = useState<string>(CATEGORIES[0]?.id ?? "");
+  const [newItemTag, setNewItemTag] = useState<MenuItem["tag"]>(undefined);
 
   const startEdit = (item: MenuItem) => {
     setEditingId(item.id);
@@ -817,16 +887,121 @@ const StocksManagementView = ({
     setEditingId(null);
   };
 
+  const handleAddNewItem = () => {
+    if (!newItemName.trim() || newItemPrice <= 0 || !newItemCategory) {
+      window.alert("Please fill in name, price, and category.");
+      return;
+    }
+    onAddItem({
+      name: newItemName.trim(),
+      description: newItemDesc.trim() || "No description",
+      price: newItemPrice,
+      categoryId: newItemCategory,
+      isAvailable: true,
+      tag: newItemTag
+    });
+    setNewItemName("");
+    setNewItemDesc("");
+    setNewItemPrice(0);
+    setNewItemCategory(CATEGORIES[0]?.id ?? "");
+    setNewItemTag(undefined);
+    setShowAddForm(false);
+  };
+
   return (
-    <section className="ms-panel ms-admin">
-      <header className="ms-panel-header ms-admin-header">
-        <div>
-          <h1 className="ms-panel-title">Stocks Management</h1>
-          <p className="ms-panel-subtitle">
-            Control availability, pricing, and catalogue integrity.
-          </p>
+    <div className="ms-admin-container">
+      <section className="ms-panel ms-admin">
+        <header className="ms-panel-header ms-admin-header">
+          <div>
+            <h1 className="ms-panel-title">Stocks Management</h1>
+            <p className="ms-panel-subtitle">
+              Control availability, pricing, and catalogue integrity.
+            </p>
+          </div>
+          <div className="ms-admin-actions">
+            <button
+              type="button"
+              className="ms-primary-cta"
+              onClick={() => setShowAddForm(!showAddForm)}
+            >
+              {showAddForm ? "Cancel" : "Add Items"}
+            </button>
+          </div>
+        </header>
+
+      {showAddForm && (
+        <div className="ms-add-item-form">
+          <h3 className="ms-admin-section-title">Add New Item</h3>
+          <div className="ms-add-item-fields">
+            <label className="ms-login-field">
+              <span>Item Name</span>
+              <input
+                type="text"
+                value={newItemName}
+                onChange={(e) => setNewItemName(e.target.value)}
+                placeholder="e.g., Espresso Shot"
+              />
+            </label>
+            <label className="ms-login-field">
+              <span>Description</span>
+              <input
+                type="text"
+                value={newItemDesc}
+                onChange={(e) => setNewItemDesc(e.target.value)}
+                placeholder="Brief description"
+              />
+            </label>
+            <label className="ms-login-field">
+              <span>Price (₹)</span>
+              <input
+                type="number"
+                value={newItemPrice || ""}
+                onChange={(e) => setNewItemPrice(Number(e.target.value))}
+                placeholder="0"
+                min="0"
+              />
+            </label>
+            <label className="ms-login-field">
+              <span>Category</span>
+              <select
+                value={newItemCategory}
+                onChange={(e) => setNewItemCategory(e.target.value)}
+              >
+                {CATEGORIES.map((cat) => (
+                  <option key={cat.id} value={cat.id}>
+                    {cat.label}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <label className="ms-login-field">
+              <span>Tag (Optional)</span>
+              <select
+                value={newItemTag || ""}
+                onChange={(e) =>
+                  setNewItemTag(
+                    e.target.value
+                      ? (e.target.value as MenuItem["tag"])
+                      : undefined
+                  )
+                }
+              >
+                <option value="">None</option>
+                <option value="Signature">Signature</option>
+                <option value="Chef's pick">Chef's pick</option>
+                <option value="New">New</option>
+              </select>
+            </label>
+          </div>
+          <button
+            type="button"
+            className="ms-primary-cta"
+            onClick={handleAddNewItem}
+          >
+            Add Item
+          </button>
         </div>
-      </header>
+      )}
 
       <div className="ms-stocks-groups">
         {CATEGORIES.map((category) => {
@@ -915,7 +1090,8 @@ const StocksManagementView = ({
           );
         })}
       </div>
-    </section>
+      </section>
+    </div>
   );
 };
 
@@ -942,60 +1118,64 @@ const BillView = ({ orders, menuItems }: BillViewProps) => {
   };
 
   return (
-    <section className="ms-panel ms-bill">
-      <header className="ms-bill-header">
-        <div>
-          <h1 className="ms-panel-title">Bill</h1>
-          <p className="ms-panel-subtitle">
-            Generated reference: {order.billNumber}
-          </p>
-        </div>
-        <button
-          type="button"
-          className="ms-secondary-cta ms-print-hide"
-          onClick={handlePrint}
-        >
-          Print bill
-        </button>
-      </header>
-
-      <div className="ms-bill-receipt">
-        <div className="ms-bill-brand">
-          <strong>MID STREET</strong>
-          <span>Modern Café · Downtown (placeholder)</span>
-        </div>
-        <div className="ms-bill-meta">
-          <span>Bill No: {order.billNumber}</span>
-          <span>
-            Date: {order.createdAt.toLocaleDateString()} · {order.createdAt.toLocaleTimeString()}
-          </span>
-          <span>Table: {order.table}</span>
-        </div>
-        <div className="ms-bill-lines">
-          <div className="ms-bill-lines-head">
-            <span>Item</span>
-            <span>Qty</span>
-            <span>Price</span>
-            <span>Subtotal</span>
+    <div className="ms-admin-container">
+      <section className="ms-panel ms-bill">
+        <header className="ms-bill-header">
+          <div>
+            <h1 className="ms-panel-title">Bill</h1>
+            <p className="ms-panel-subtitle">
+              Generated reference: {order.billNumber}
+            </p>
           </div>
-          {lines.map(({ cart, menuItem }) => (
-            <div key={cart.menuItemId} className="ms-bill-line-row">
-              <span>{menuItem?.name ?? "Removed item"}</span>
-              <span>{cart.quantity}</span>
-              <span>₹ {menuItem?.price ?? 0}</span>
-              <span>₹ {(menuItem?.price ?? 0) * cart.quantity}</span>
+          <button
+            type="button"
+            className="ms-secondary-cta ms-print-hide"
+            onClick={handlePrint}
+          >
+            Print bill
+          </button>
+        </header>
+
+        <div className="ms-bill-receipt">
+          <div className="ms-bill-brand">
+            <strong>MID STREET</strong>
+            <span>Modern Café · Downtown (placeholder)</span>
+          </div>
+          <div className="ms-bill-meta">
+            <span>Bill No: {order.billNumber}</span>
+            <span>
+              Date: {order.createdAt.toLocaleDateString()} · {order.createdAt.toLocaleTimeString()}
+            </span>
+            <span>Table: {order.table}</span>
+          </div>
+          <div className="ms-admin-table-wrapper">
+            <div className="ms-bill-lines">
+              <div className="ms-bill-lines-head">
+                <span>Item</span>
+                <span>Qty</span>
+                <span>Price</span>
+                <span>Subtotal</span>
+              </div>
+              {lines.map(({ cart, menuItem }) => (
+                <div key={cart.menuItemId} className="ms-bill-line-row">
+                  <span>{menuItem?.name ?? "Removed item"}</span>
+                  <span>{cart.quantity}</span>
+                  <span>₹ {menuItem?.price ?? 0}</span>
+                  <span>₹ {(menuItem?.price ?? 0) * cart.quantity}</span>
+                </div>
+              ))}
             </div>
-          ))}
+          </div>
+          <div className="ms-bill-total-row">
+            <span>Total</span>
+            <span className="ms-price-strong">₹ {order.total}</span>
+          </div>
+          <div className="ms-bill-footer">
+            <span>Thank you for dining with us.</span>
+          </div>
         </div>
-        <div className="ms-bill-total-row">
-          <span>Total</span>
-          <span className="ms-price-strong">₹ {order.total}</span>
-        </div>
-        <div className="ms-bill-footer">
-          <span>Thank you for dining with us.</span>
-        </div>
-      </div>
-    </section>
+      </section>
+    </div>
   );
 };
 
@@ -1007,41 +1187,45 @@ const DailySummaryView = ({ orders }: DailySummaryViewProps) => {
   const totalRevenue = orders.reduce((sum, o) => sum + o.total, 0);
 
   return (
-    <section className="ms-panel ms-daily-summary">
-      <header className="ms-panel-header">
-        <h1 className="ms-panel-title">Daily summary</h1>
-        <p className="ms-panel-subtitle">
-          Compact snapshot of today&apos;s orders for printout.
-        </p>
-      </header>
-      <div className="ms-daily-meta">
-        <span>Date: {new Date().toLocaleDateString()}</span>
-        <span>Orders: {orders.length}</span>
-        <span>Total revenue: ₹ {totalRevenue}</span>
-      </div>
-      <div className="ms-daily-table">
-        <div className="ms-daily-table-head">
-          <span>Bill</span>
-          <span>Table</span>
-          <span>Total</span>
-          <span>Time</span>
+    <div className="ms-admin-container">
+      <section className="ms-panel ms-daily-summary">
+        <header className="ms-panel-header">
+          <h1 className="ms-panel-title">Daily summary</h1>
+          <p className="ms-panel-subtitle">
+            Compact snapshot of today&apos;s orders for printout.
+          </p>
+        </header>
+        <div className="ms-daily-meta">
+          <span>Date: {new Date().toLocaleDateString()}</span>
+          <span>Orders: {orders.length}</span>
+          <span>Total revenue: ₹ {totalRevenue}</span>
         </div>
-        {orders.map((order) => (
-          <div key={order.id} className="ms-daily-table-row">
-            <span>{order.billNumber}</span>
-            <span>{order.table}</span>
-            <span>₹ {order.total}</span>
-            <span>{order.createdAt.toLocaleTimeString()}</span>
+        <div className="ms-admin-table-wrapper">
+          <div className="ms-daily-table">
+            <div className="ms-daily-table-head">
+              <span>Bill</span>
+              <span>Table</span>
+              <span>Total</span>
+              <span>Time</span>
+            </div>
+            {orders.map((order) => (
+              <div key={order.id} className="ms-daily-table-row">
+                <span>{order.billNumber}</span>
+                <span>{order.table}</span>
+                <span>₹ {order.total}</span>
+                <span>{order.createdAt.toLocaleTimeString()}</span>
+              </div>
+            ))}
+            {orders.length === 0 && (
+              <div className="ms-daily-table-empty">No orders recorded.</div>
+            )}
           </div>
-        ))}
-        {orders.length === 0 && (
-          <div className="ms-daily-table-empty">No orders recorded.</div>
-        )}
-      </div>
-      <div className="ms-daily-footer">
-        <span>System Generated Report</span>
-      </div>
-    </section>
+        </div>
+        <div className="ms-daily-footer">
+          <span>System Generated Report</span>
+        </div>
+      </section>
+    </div>
   );
 };
 

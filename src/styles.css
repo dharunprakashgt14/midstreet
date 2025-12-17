@@ -221,6 +221,10 @@ body {
 .ms-main {
   padding: 18px 20px 80px;
   position: relative;
+  width: 100%;
+  max-width: 100%;
+  box-sizing: border-box;
+  overflow-x: hidden;
 }
 
 .ms-main-header-row {
@@ -255,6 +259,10 @@ body {
   background: radial-gradient(circle at top left, #161824, #0a0c14);
   border: 1px solid rgba(255, 255, 255, 0.06);
   box-shadow: 0 14px 40px rgba(0, 0, 0, 0.6);
+  width: 100%;
+  max-width: 100%;
+  box-sizing: border-box;
+  overflow-x: hidden;
 }
 
 .ms-panel-header {
@@ -584,12 +592,20 @@ body {
   font-size: 12px;
 }
 
+/* Mobile-responsive wrapper for Orders page */
+.ms-orders-container {
+  width: 100%;
+  max-width: 100%;
+  overflow-x: hidden;
+}
+
 .ms-status-meta {
   display: flex;
   gap: 16px;
   font-size: 11px;
   color: rgba(213, 213, 242, 0.86);
   margin-bottom: 12px;
+  flex-wrap: wrap;
 }
 
 .ms-status-steps {
@@ -599,6 +615,22 @@ body {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: 18px;
+}
+
+/* Mobile-responsive wrapper for Admin pages */
+.ms-admin-container {
+  width: 100%;
+  max-width: 100%;
+  overflow-x: hidden;
+  box-sizing: border-box;
+}
+
+.ms-admin-table-wrapper {
+  width: 100%;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  box-sizing: border-box;
+  position: relative;
 }
 
 .ms-status-step {
@@ -631,6 +663,10 @@ body {
   display: flex;
   flex-direction: column;
   gap: 16px;
+  width: 100%;
+  max-width: 100%;
+  box-sizing: border-box;
+  overflow-x: hidden;
 }
 
 .ms-admin-header {
@@ -638,6 +674,7 @@ body {
   align-items: center;
   justify-content: space-between;
   gap: 12px;
+  flex-wrap: wrap;
 }
 
 .ms-admin-actions {
@@ -683,6 +720,10 @@ body {
   padding: 10px 12px 12px;
   background: linear-gradient(135deg, #1a1b2a, #10111a);
   border: 1px solid rgba(255, 255, 255, 0.06);
+  width: 100%;
+  max-width: 100%;
+  box-sizing: border-box;
+  overflow-x: hidden;
 }
 
 .ms-admin-section-title {
@@ -698,6 +739,8 @@ body {
   border: 1px solid rgba(255, 255, 255, 0.06);
   overflow: hidden;
   font-size: 11px;
+  width: 100%;
+  min-width: 0;
 }
 
 .ms-admin-table-head,
@@ -727,6 +770,8 @@ body {
   display: flex;
   gap: 4px;
   justify-content: flex-end;
+  flex-wrap: wrap;
+  align-items: center;
 }
 
 .ms-admin-row-actions select {
@@ -736,6 +781,13 @@ body {
   color: rgba(224, 224, 247, 0.96);
   font-size: 10px;
   padding: 2px 6px;
+  min-width: 0;
+  flex-shrink: 1;
+}
+
+.ms-admin-row-actions button {
+  white-space: nowrap;
+  flex-shrink: 0;
 }
 
 .ms-admin-table-empty {
@@ -1007,6 +1059,31 @@ body {
   width: 90px;
 }
 
+.ms-add-item-form {
+  border-radius: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  padding: 12px 14px;
+  background: linear-gradient(135deg, #1a1b2a, #0f101a);
+  margin-bottom: 12px;
+}
+
+.ms-add-item-fields {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+  margin-bottom: 10px;
+}
+
+.ms-add-item-fields .ms-login-field select {
+  border-radius: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  background: rgba(255, 255, 255, 0.04);
+  color: #fff;
+  padding: 8px 10px;
+  font-size: 12px;
+  width: 100%;
+}
+
 /* Tablet: 768px–1023px */
 @media (max-width: 1023px) {
   .ms-app-shell {
@@ -1027,6 +1104,10 @@ body {
 
   .ms-main {
     padding: 14px 16px 120px;
+    width: 100%;
+    max-width: 100%;
+    box-sizing: border-box;
+    overflow-x: hidden;
   }
 
   .ms-table-grid {
@@ -1043,6 +1124,7 @@ body {
 
   .ms-admin-grid {
     grid-template-columns: 1fr;
+    gap: 12px;
   }
 
   .ms-cart-dock {
@@ -1054,10 +1136,19 @@ body {
     z-index: 20;
   }
 
+  .ms-admin-table-wrapper {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    width: 100%;
+    box-sizing: border-box;
+  }
+
   .ms-admin-table,
   .ms-daily-table,
   .ms-bill-lines {
-    overflow-x: auto;
+    min-width: 640px;
+    width: 100%;
+    box-sizing: border-box;
   }
 
   .ms-admin-table-head,
@@ -1067,6 +1158,71 @@ body {
   .ms-bill-lines-head,
   .ms-bill-line-row {
     min-width: 640px;
+  }
+
+  .ms-status-meta {
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .ms-status-steps {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 12px;
+  }
+
+  .ms-add-item-fields {
+    grid-template-columns: 1fr;
+  }
+
+  .ms-stocks-row {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 8px;
+  }
+
+  .ms-stocks-actions {
+    flex-wrap: wrap;
+    width: 100%;
+  }
+
+  .ms-stocks-main {
+    width: 100%;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 4px;
+  }
+
+  .ms-daily-table,
+  .ms-bill-lines {
+    min-width: 520px;
+  }
+
+  .ms-bill-meta {
+    flex-direction: column;
+    gap: 6px;
+  }
+
+  .ms-daily-meta {
+    flex-direction: column;
+    gap: 6px;
+  }
+
+  .ms-login-form {
+    max-width: 100%;
+  }
+
+  .ms-login-field input {
+    width: 100%;
+    max-width: 100%;
+  }
+
+  .ms-admin-header {
+    flex-wrap: wrap;
+  }
+
+  .ms-admin-actions {
+    flex-wrap: wrap;
+    gap: 8px;
   }
 }
 
@@ -1133,6 +1289,112 @@ body {
   .ms-admin-actions {
     flex-wrap: wrap;
     justify-content: flex-start;
+    width: 100%;
+    gap: 8px;
+  }
+
+  .ms-admin-actions button {
+    flex: 1 1 auto;
+    min-width: 120px;
+  }
+
+  .ms-admin-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 10px;
+  }
+
+  .ms-admin-header > div {
+    width: 100%;
+  }
+
+  .ms-panel {
+    width: 100%;
+    max-width: 100%;
+    box-sizing: border-box;
+    padding: 12px 14px 16px;
+  }
+
+  .ms-admin-metrics {
+    gap: 8px;
+  }
+
+  .ms-metric-card {
+    padding: 8px 10px;
+  }
+
+  .ms-admin-section-title {
+    font-size: 11px;
+  }
+
+  .ms-admin-table-wrapper {
+    margin: 0 -14px;
+    padding: 0 14px;
+  }
+
+  .ms-admin-table-head,
+  .ms-admin-table-row {
+    font-size: 10px;
+    padding: 6px 4px;
+    gap: 4px;
+  }
+
+  .ms-admin-table-head span,
+  .ms-admin-table-row span {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .ms-stocks-block {
+    padding: 8px 10px;
+  }
+
+  .ms-stocks-row {
+    padding: 8px 0;
+  }
+
+  .ms-stocks-actions button {
+    font-size: 10px;
+    padding: 4px 8px;
+  }
+
+  .ms-add-item-form {
+    padding: 10px 12px;
+  }
+
+  .ms-add-item-fields .ms-login-field {
+    font-size: 11px;
+  }
+
+  .ms-add-item-fields .ms-login-field input,
+  .ms-add-item-fields .ms-login-field select {
+    font-size: 11px;
+    padding: 6px 8px;
+  }
+
+  .ms-admin-container {
+    width: 100%;
+    max-width: 100%;
+    overflow-x: hidden;
+    box-sizing: border-box;
+  }
+
+  .ms-admin-table-wrapper {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    width: 100%;
+    margin: 0 -14px;
+    padding: 0 14px;
+    box-sizing: border-box;
+  }
+
+  .ms-admin-table,
+  .ms-daily-table,
+  .ms-bill-lines {
+    min-width: 520px;
+    width: 100%;
+    box-sizing: border-box;
   }
 
   .ms-admin-table-head,
@@ -1142,6 +1404,47 @@ body {
   .ms-bill-lines-head,
   .ms-bill-line-row {
     min-width: 520px;
+  }
+
+  .ms-admin-row-actions {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 4px;
+  }
+
+  .ms-admin-row-actions select {
+    width: 100%;
+    font-size: 10px;
+  }
+
+  .ms-admin-row-actions button {
+    width: 100%;
+    font-size: 10px;
+  }
+
+  .ms-stocks-actions {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 4px;
+  }
+
+  .ms-stocks-actions button {
+    width: 100%;
+    font-size: 10px;
+    padding: 6px 8px;
+  }
+
+  .ms-stocks-input-small {
+    width: 100%;
+  }
+
+  .ms-metric-value {
+    font-size: 16px;
+  }
+
+  .ms-admin-actions button {
+    font-size: 11px;
+    padding: 6px 10px;
   }
 
   .ms-cart-dock {
