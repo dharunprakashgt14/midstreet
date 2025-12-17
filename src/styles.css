@@ -1007,6 +1007,163 @@ body {
   width: 90px;
 }
 
+/* Tablet: 768px–1023px */
+@media (max-width: 1023px) {
+  .ms-app-shell {
+    width: 100%;
+    margin: 12px;
+  }
+
+  .ms-layout {
+    display: flex;
+    flex-direction: column;
+  }
+
+  .ms-sidebar {
+    border-right: none;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+    padding-bottom: 16px;
+  }
+
+  .ms-main {
+    padding: 14px 16px 120px;
+  }
+
+  .ms-table-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .ms-menu-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .ms-admin-metrics {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .ms-admin-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .ms-cart-dock {
+    position: fixed;
+    left: 12px;
+    right: 12px;
+    bottom: 12px;
+    width: auto;
+    z-index: 20;
+  }
+
+  .ms-admin-table,
+  .ms-daily-table,
+  .ms-bill-lines {
+    overflow-x: auto;
+  }
+
+  .ms-admin-table-head,
+  .ms-admin-table-row,
+  .ms-daily-table-head,
+  .ms-daily-table-row,
+  .ms-bill-lines-head,
+  .ms-bill-line-row {
+    min-width: 640px;
+  }
+}
+
+/* Mobile: ≤767px */
+@media (max-width: 767px) {
+  body {
+    align-items: flex-start;
+  }
+
+  .ms-app-shell {
+    width: 100%;
+    margin: 0;
+    border-radius: 0;
+  }
+
+  .ms-header {
+    padding: 14px 16px 10px;
+    gap: 10px;
+  }
+
+  .ms-header-left {
+    flex-wrap: wrap;
+  }
+
+  .ms-layout {
+    display: flex;
+    flex-direction: column;
+  }
+
+  .ms-sidebar {
+    padding: 12px 14px;
+  }
+
+  .ms-main {
+    padding: 12px 14px 130px;
+  }
+
+  .ms-main-header-row {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 6px;
+  }
+
+  .ms-table-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .ms-menu-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .ms-category-rail {
+    padding-top: 4px;
+  }
+
+  .ms-admin-metrics {
+    grid-template-columns: 1fr;
+  }
+
+  .ms-admin-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .ms-admin-actions {
+    flex-wrap: wrap;
+    justify-content: flex-start;
+  }
+
+  .ms-admin-table-head,
+  .ms-admin-table-row,
+  .ms-daily-table-head,
+  .ms-daily-table-row,
+  .ms-bill-lines-head,
+  .ms-bill-line-row {
+    min-width: 520px;
+  }
+
+  .ms-cart-dock {
+    position: fixed;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    width: 100%;
+    border-radius: 12px 12px 0 0;
+    margin: 0;
+  }
+
+  .ms-cart-dock-toggle {
+    padding: 10px 14px;
+  }
+
+  .ms-cart-dock-body {
+    max-height: 260px;
+    overflow-y: auto;
+  }
+}
+
 @media print {
   body {
     background: #ffffff;
