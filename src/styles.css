@@ -1577,6 +1577,43 @@ body {
     flex-wrap: wrap;
     overflow-x: visible;
   }
+
+  /* Mobile-only containment for Bill view
+     - Keep the bill layout intact
+     - Allow horizontal scroll inside the bill lines, not at page level */
+  .ms-bill {
+    max-width: 100%;
+    box-sizing: border-box;
+    overflow-x: hidden;
+  }
+
+  .ms-bill-receipt {
+    max-width: 100%;
+    box-sizing: border-box;
+    overflow-x: hidden;
+  }
+
+  .ms-bill .ms-admin-table-wrapper {
+    /* Enable horizontal scrolling just for the bill line items on narrow screens */
+    max-width: 100%;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  /* Mobile-only containment for Daily Summary
+     - Preserve table layout
+     - Allow horizontal scroll only inside the summary table if needed */
+  .ms-daily-summary {
+    max-width: 100%;
+    box-sizing: border-box;
+    overflow-x: hidden;
+  }
+
+  .ms-daily-summary .ms-admin-table-wrapper {
+    max-width: 100%;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
 }
 
 
