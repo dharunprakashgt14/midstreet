@@ -1532,4 +1532,51 @@ body {
   }
 }
 
+/* Mobile containment & overflow fixes
+   - Keep the app strictly within the viewport on small screens
+   - Avoid horizontal scrolling at the page level while preserving desktop layout */
+@media (max-width: 768px) {
+  html,
+  body {
+    /* Ensure the root never exceeds the viewport width on mobile */
+    width: 100%;
+    max-width: 100%;
+    overflow-x: hidden;
+  }
+
+  .ms-app-shell {
+    /* Constrain the shell to the viewport and prevent horizontal bleed */
+    max-width: 100%;
+    overflow-x: hidden;
+  }
+
+  .ms-layout {
+    /* Prevent grid/flex layout from creating horizontal overflow */
+    max-width: 100%;
+    overflow-x: hidden;
+  }
+
+  .ms-main,
+  .ms-panel,
+  .ms-orders-container,
+  .ms-admin-container {
+    /* Ensure primary content containers stay within viewport width */
+    max-width: 100%;
+    overflow-x: hidden;
+  }
+
+  .ms-header-right {
+    /* Allow header actions (table badge, buttons, cart) to wrap on narrow screens
+       so they do not force horizontal overflow */
+    flex-wrap: wrap;
+  }
+
+  .ms-category-rail {
+    /* Let category chips wrap naturally on very small screens instead of
+       forcing a horizontal overflow area that can push the page width */
+    flex-wrap: wrap;
+    overflow-x: visible;
+  }
+}
+
 
