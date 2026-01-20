@@ -10,7 +10,6 @@
 console.log('🚀 Starting server...');
 
 import express from 'express';
-import cors from 'cors';
 import dotenv from 'dotenv';
 import { createServer } from 'http';
 import { Server } from 'socket.io';
@@ -27,6 +26,33 @@ dotenv.config();
 // Create Express app
 const app = express();
 
+// CORS Configuration - Allow both localhost and Vercel
+const allowedOrigins = [
+  'http://localhost:5173',      // Frontend dev server
+  'http://localhost:3000',      // Alternative frontend port
+  'http://127.0.0.1:5173',      // Localhost alternative
+  'http://127.0.0.1:3000',      // Localhost alternative
+  'https://midstreet.vercel.app', // Production frontend
+];
+
+// CORS Middleware
+app.use((req, res, next) => {
+  const origin = req.headers.origin;
+  
+  // Check if origin is in allowed list or in development mode
+  if (!origin || allowedOrigins.includes(origin) || origin?.startsWith('http://localhost:') || origin?.startsWith('http://127.0.0.1:')) {
+    res.header('Access-Control-Allow-Origin', origin || '*');
+    res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, PATCH, DELETE, OPTIONS');
+    res.header('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept, Authorization');
+    res.header('Access-Control-Allow-Credentials', 'true');
+  }
+  
+  if (req.method === 'OPTIONS') {
+    return res.sendStatus(200);
+  }
+  next();
+});
+
 // Create HTTP server
 const httpServer = createServer(app);
 
@@ -36,26 +62,20 @@ const PORT = process.env.PORT || 5000;
 // Get frontend URL for CORS
 const FRONTEND_URL = process.env.FRONTEND_URL || 'http://localhost:5173';
 const NODE_ENV = process.env.NODE_ENV || 'development';
+const isDev = NODE_ENV === 'development';
 
 console.log(`\n🔧 Environment Setup:`);
 console.log(`   NODE_ENV: ${NODE_ENV}`);
 console.log(`   FRONTEND_URL: ${FRONTEND_URL}`);
-console.log(`   Is Development: ${NODE_ENV === 'development'}\n`);
+console.log(`   Is Development: ${isDev}\n`);
 
-// CORS configuration - completely permissive for development
-const corsOptions = {
-  origin: true, // Allow all origins in development
-  credentials: true,
-  methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization']
-};
-
-// Initialize Socket.IO with permissive CORS
+// Initialize Socket.IO BEFORE middleware
 const io = new Server(httpServer, {
   cors: {
-    origin: true, // Allow all origins
-    methods: ['GET', 'POST'],
-    credentials: true
+    origin: isDev ? '*' : FRONTEND_URL,
+    methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE'],
+    credentials: true,
+    allowedHeaders: ['Content-Type', 'Authorization']
   }
 });
 
@@ -105,38 +125,7 @@ io.on('connection', (socket) => {
 // MIDDLEWARE
 // ============================================
 
-// Enable CORS (Cross-Origin Resource Sharing)
-// This allows the frontend (running on different port) to access the backend
-app.use(cors(corsOptions));
-
-// Manual CORS headers middleware for extra safety
-app.use((req, res, next) => {
-  const origin = req.headers.origin;
-  
-  // Allow all origins in development
-  if (NODE_ENV === 'development') {
-    res.header('Access-Control-Allow-Origin', origin || '*');
-    res.header('Access-Control-Allow-Credentials', 'true');
-    res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, PATCH, DELETE, OPTIONS');
-    res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization');
-  } else {
-    // Production - restrict to frontend URL
-    res.header('Access-Control-Allow-Origin', FRONTEND_URL);
-    res.header('Access-Control-Allow-Credentials', 'true');
-    res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, PATCH, DELETE, OPTIONS');
-    res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization');
-  }
-  
-  // Handle preflight requests
-  if (req.method === 'OPTIONS') {
-    return res.sendStatus(200);
-  }
-  
-  next();
-});
-
 // Parse JSON request bodies
-// This allows us to read JSON data from request.body
 app.use(express.json());
 
 // Parse URL-encoded request bodies
