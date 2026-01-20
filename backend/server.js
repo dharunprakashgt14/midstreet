@@ -212,9 +212,10 @@ const startServer = async () => {
     });
     
     // Start listening for requests
-    httpServer.listen(PORT, () => {
+    // Bind to 0.0.0.0 to accept connections from any interface (required for Render)
+    httpServer.listen(PORT, '0.0.0.0', () => {
       console.log('\n🚀 Server Started Successfully!');
-      console.log(`📍 Server running on: http://localhost:${PORT}`);
+      console.log(`📍 Server running on: http://0.0.0.0:${PORT}`);
       console.log(`🌐 Frontend URL: ${FRONTEND_URL}`);
       console.log(`📡 API Health Check: http://localhost:${PORT}/api/health`);
       console.log(`🔌 Socket.IO enabled for real-time updates`);
