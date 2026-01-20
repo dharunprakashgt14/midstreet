@@ -34,57 +34,26 @@ const httpServer = createServer(app);
 const PORT = process.env.PORT || 5000;
 
 // Get frontend URL for CORS
-// Allow dynamic frontend ports (5173, 5174, etc.) for development
 const FRONTEND_URL = process.env.FRONTEND_URL || 'http://localhost:5173';
+const NODE_ENV = process.env.NODE_ENV || 'development';
 
-// CORS configuration - allow all localhost ports in development
+console.log(`\n🔧 Environment Setup:`);
+console.log(`   NODE_ENV: ${NODE_ENV}`);
+console.log(`   FRONTEND_URL: ${FRONTEND_URL}`);
+console.log(`   Is Development: ${NODE_ENV === 'development'}\n`);
+
+// CORS configuration - completely permissive for development
 const corsOptions = {
-  origin: function (origin, callback) {
-    // Allow requests with no origin (like mobile apps, Postman, etc.)
-    if (!origin) {
-      return callback(null, true);
-    }
-    
-    // In development, allow any localhost port
-    if (process.env.NODE_ENV !== 'production') {
-      if (origin.startsWith('http://localhost:') || origin.startsWith('http://127.0.0.1:')) {
-        return callback(null, true);
-      }
-    }
-    
-    // In production, use configured FRONTEND_URL
-    if (origin === FRONTEND_URL) {
-      return callback(null, true);
-    }
-    
-    callback(new Error('Not allowed by CORS'));
-  },
-  credentials: true
+  origin: true, // Allow all origins in development
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization']
 };
 
-// Initialize Socket.IO with dynamic CORS
+// Initialize Socket.IO with permissive CORS
 const io = new Server(httpServer, {
   cors: {
-    origin: function (origin, callback) {
-      // Allow requests with no origin
-      if (!origin) {
-        return callback(null, true);
-      }
-      
-      // In development, allow any localhost port
-      if (process.env.NODE_ENV !== 'production') {
-        if (origin.startsWith('http://localhost:') || origin.startsWith('http://127.0.0.1:')) {
-          return callback(null, true);
-        }
-      }
-      
-      // In production, use configured FRONTEND_URL
-      if (origin === FRONTEND_URL) {
-        return callback(null, true);
-      }
-      
-      callback(new Error('Not allowed by CORS'));
-    },
+    origin: true, // Allow all origins
     methods: ['GET', 'POST'],
     credentials: true
   }
@@ -138,8 +107,33 @@ io.on('connection', (socket) => {
 
 // Enable CORS (Cross-Origin Resource Sharing)
 // This allows the frontend (running on different port) to access the backend
-// Dynamically allows any localhost port in development
 app.use(cors(corsOptions));
+
+// Manual CORS headers middleware for extra safety
+app.use((req, res, next) => {
+  const origin = req.headers.origin;
+  
+  // Allow all origins in development
+  if (NODE_ENV === 'development') {
+    res.header('Access-Control-Allow-Origin', origin || '*');
+    res.header('Access-Control-Allow-Credentials', 'true');
+    res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, PATCH, DELETE, OPTIONS');
+    res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+  } else {
+    // Production - restrict to frontend URL
+    res.header('Access-Control-Allow-Origin', FRONTEND_URL);
+    res.header('Access-Control-Allow-Credentials', 'true');
+    res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, PATCH, DELETE, OPTIONS');
+    res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+  }
+  
+  // Handle preflight requests
+  if (req.method === 'OPTIONS') {
+    return res.sendStatus(200);
+  }
+  
+  next();
+});
 
 // Parse JSON request bodies
 // This allows us to read JSON data from request.body
