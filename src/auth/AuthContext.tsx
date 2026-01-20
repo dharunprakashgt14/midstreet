@@ -6,36 +6,44 @@ import {
   ReactNode
 } from "react";
 import { Navigate, Outlet, useLocation } from "react-router-dom";
+import { adminAPI } from "../utils/api";
 
 const AUTH_KEY = "midstreet_admin_session";
+const TOKEN_KEY = "midstreet_admin_token";
 
 interface AuthContextValue {
   isAuthenticated: boolean;
-  login: (username: string, password: string) => boolean;
+  login: (username: string, password: string) => Promise<boolean>;
   logout: () => void;
 }
 
 const AuthContext = createContext<AuthContextValue | undefined>(undefined);
 
-const DEMO_USERNAME = "admin";
-const DEMO_PASSWORD = "midstreet123";
-
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [isAuthenticated, setIsAuthenticated] = useState<boolean>(() => {
-    return window.sessionStorage.getItem(AUTH_KEY) === "true";
+    // Check if token exists in sessionStorage
+    return !!window.sessionStorage.getItem(TOKEN_KEY);
   });
 
-  const login = (username: string, password: string) => {
-    const ok = username === DEMO_USERNAME && password === DEMO_PASSWORD;
-    if (ok) {
-      window.sessionStorage.setItem(AUTH_KEY, "true");
+  const login = async (username: string, password: string): Promise<boolean> => {
+    try {
+      // Call backend login API
+      await adminAPI.login(username, password);
+      
+      // If successful, token is stored by adminAPI.login
       setIsAuthenticated(true);
+      window.sessionStorage.setItem(AUTH_KEY, "true");
+      return true;
+    } catch (error) {
+      console.error('Login failed:', error);
+      setIsAuthenticated(false);
+      return false;
     }
-    return ok;
   };
 
   const logout = () => {
     window.sessionStorage.removeItem(AUTH_KEY);
+    window.sessionStorage.removeItem(TOKEN_KEY);
     setIsAuthenticated(false);
   };
 
