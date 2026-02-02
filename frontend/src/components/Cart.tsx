@@ -7,6 +7,12 @@ interface CartProps {
   onAdd: (menuItemId: string) => void;
   onDecrease: (menuItemId: string) => void;
   menuItems: MenuItem[];
+  /** When true, customer can place a brand new order (no active order yet). */
+  canPlaceNewOrder: boolean;
+  /** Called when customer taps "Place order" in the bottom cart dock. */
+  onPlaceOrder: () => void;
+  /** Called when customer taps "Add to existing order" in the bottom cart dock. */
+  onAddToExistingOrder: () => void;
 }
 
 /**
@@ -17,7 +23,16 @@ interface CartProps {
  * will reflect server-confirmed quantities and totals, and cart changes will
  * be reconciled with the active order on the backend.
  */
-export const Cart = ({ cart, total, onAdd, onDecrease, menuItems }: CartProps) => {
+export const Cart = ({
+  cart,
+  total,
+  onAdd,
+  onDecrease,
+  menuItems,
+  canPlaceNewOrder,
+  onPlaceOrder,
+  onAddToExistingOrder
+}: CartProps) => {
   const [expanded, setExpanded] = useState<boolean>(false);
 
   const enrichedItems = cart.map((c) => {
@@ -73,9 +88,34 @@ export const Cart = ({ cart, total, onAdd, onDecrease, menuItems }: CartProps) =
                   )
                 )}
               </ul>
-              <div className="ms-cart-dock-footer">
-                <span>Total</span>
-                <span className="ms-price-strong">₹ {total}</span>
+
+              <div className="ms-menu-footer" style={{ marginTop: 10 }}>
+                <div className="ms-menu-total">
+                  <span>Total</span>
+                  <span className="ms-price-strong">₹ {total}</span>
+                </div>
+                <div className="ms-cta-group">
+                  {!canPlaceNewOrder && (
+                    <button
+                      type="button"
+                      className="ms-secondary-cta"
+                      disabled={cart.length === 0}
+                      onClick={onAddToExistingOrder}
+                    >
+                      Add to existing order
+                    </button>
+                  )}
+                  {canPlaceNewOrder && (
+                    <button
+                      type="button"
+                      className="ms-primary-cta"
+                      disabled={cart.length === 0}
+                      onClick={onPlaceOrder}
+                    >
+                      Place order
+                    </button>
+                  )}
+                </div>
               </div>
             </>
           )}

@@ -588,6 +588,9 @@ export const OrderPage = () => {
           onAdd={handleAddToCart}
           onDecrease={handleDecreaseFromCart}
           menuItems={menuItems}
+          canPlaceNewOrder={!mostRecentOrder}
+          onPlaceOrder={handleSubmitOrder}
+          onAddToExistingOrder={handleAddToExistingOrder}
         />
       </div>
     </div>

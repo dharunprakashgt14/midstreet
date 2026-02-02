@@ -46,10 +46,11 @@ export const OrderStatus = ({ order, steps }: OrderStatusProps) => {
                 : index === currentIndex
                 ? "active"
                 : "upcoming";
+            const label = step.replace(/_/g, " ").toLowerCase().replace(/\b\w/g, (c) => c.toUpperCase());
             return (
               <li key={step} className={`ms-status-step ms-status-step-${state}`}>
                 <div className="ms-status-bullet" />
-                <div className="ms-status-label">{step}</div>
+                <div className="ms-status-label">{label}</div>
               </li>
             );
           })}
