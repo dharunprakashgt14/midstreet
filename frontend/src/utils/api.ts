@@ -125,6 +125,52 @@ export const menuAPI = {
       body: JSON.stringify(normalizedUpdates),
     });
   },
+
+  /**
+   * Create menu item (admin only)
+   * Backend persists the item to MongoDB and returns the created document.
+   */
+  create: async (payload: {
+    categoryId: string;
+    name: string;
+    price: number;
+    description?: string;
+    isAvailable?: boolean;
+    tag?: string;
+  }) => {
+    const body = {
+      category: payload.categoryId,
+      name: payload.name,
+      price: payload.price,
+      description: payload.description ?? '',
+      isAvailable: payload.isAvailable ?? true,
+      tag: payload.tag,
+    };
+
+    return apiRequest<{
+      _id: string;
+      category: string;
+      name: string;
+      price: number;
+      isAvailable: boolean;
+      description?: string;
+      itemId?: string;
+      tag?: string;
+      imageUrl?: string;
+    }>('/menu', {
+      method: 'POST',
+      body: JSON.stringify(body),
+    });
+  },
+
+  /**
+   * Delete menu item (admin only)
+   */
+  delete: async (itemId: string) => {
+    return apiRequest<null>(`/menu/${itemId}`, {
+      method: 'DELETE',
+    });
+  },
 };
 
 /**

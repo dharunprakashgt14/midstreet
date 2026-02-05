@@ -21,6 +21,7 @@ export const StocksManagement = () => {
   const [newItemPrice, setNewItemPrice] = useState<number>(0);
   const [newItemCategory, setNewItemCategory] = useState<string>(CATEGORIES[0]?.id ?? "");
   const [newItemTag, setNewItemTag] = useState<MenuItem["tag"]>(undefined);
+  const [uploadingImageForId, setUploadingImageForId] = useState<string | null>(null);
 
 const startEdit = (item: MenuItem) => {
   setEditingId(item.id);
@@ -40,28 +41,36 @@ const saveEdit = async () => {
   setEditingId(null);
 };
 
-  const handleAddNewItem = () => {
+  const handleAddNewItem = async () => {
     if (!newItemName.trim() || newItemPrice <= 0 || !newItemCategory) {
       window.alert("Please fill in name, price, and category.");
       return;
     }
-    const newId = `item-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
-    const newItem: MenuItem = {
-      id: newId,
-      name: newItemName.trim(),
-      description: newItemDesc.trim() || "No description",
-      price: newItemPrice,
-      categoryId: newItemCategory,
-      isAvailable: true,
-      tag: newItemTag
-    };
-    setMenuItems((prev) => [...prev, newItem]);
-    setNewItemName("");
-    setNewItemDesc("");
-    setNewItemPrice(0);
-    setNewItemCategory(CATEGORIES[0]?.id ?? "");
-    setNewItemTag(undefined);
-    setShowAddForm(false);
+    try {
+      // Persist to backend first
+      const created = await menuAPI.create({
+        categoryId: newItemCategory,
+        name: newItemName.trim(),
+        description: newItemDesc.trim() || "No description",
+        price: newItemPrice,
+        isAvailable: true,
+        tag: newItemTag,
+      });
+
+      // Refresh from backend so customer menu stays in sync
+      await refreshMenu();
+
+      // Reset form
+      setNewItemName("");
+      setNewItemDesc("");
+      setNewItemPrice(0);
+      setNewItemCategory(CATEGORIES[0]?.id ?? "");
+      setNewItemTag(undefined);
+      setShowAddForm(false);
+    } catch (error) {
+      console.error('Failed to add new menu item:', error);
+      window.alert('Failed to add new item. Please try again.');
+    }
   };
 
   const handleUpdateItem = async (
@@ -94,8 +103,76 @@ const saveEdit = async () => {
     }
   };
 
-  const handleDeleteItem = (id: string) => {
-    setMenuItems((prev) => prev.filter((item) => item.id !== id));
+  const handleDeleteItem = async (id: string) => {
+    if (!window.confirm("Are you sure you want to delete this item?")) {
+      return;
+    }
+
+    try {
+      // Delete from backend first
+      await menuAPI.delete(id);
+
+      // Optimistically remove from local state
+      setMenuItems((prev) => prev.filter((item) => item.id !== id));
+
+      // Ensure all clients stay in sync
+      await refreshMenu();
+    } catch (error) {
+      console.error('Failed to delete menu item:', error);
+      window.alert('Failed to delete item. Please try again.');
+      await refreshMenu();
+    }
+  };
+
+  /**
+   * Upload an image to Cloudinary for a specific menu item and save URL in backend.
+   * Frontend uploads directly to Cloudinary using unsigned upload preset, then
+   * updates `imageUrl` via menuAPI.update so MongoDB and customer menu stay in sync.
+   */
+  const handleUploadImage = async (item: MenuItem, file: File) => {
+    const cloudName = import.meta.env.VITE_CLOUDINARY_CLOUD_NAME;
+    const uploadPreset = import.meta.env.VITE_CLOUDINARY_UPLOAD_PRESET;
+
+    if (!cloudName || !uploadPreset) {
+      window.alert("Cloudinary is not configured. Please set VITE_CLOUDINARY_CLOUD_NAME and VITE_CLOUDINARY_UPLOAD_PRESET.");
+      return;
+    }
+
+    try {
+      setUploadingImageForId(item.id);
+
+      const formData = new FormData();
+      formData.append("file", file);
+      formData.append("upload_preset", uploadPreset);
+
+      const response = await fetch(`https://api.cloudinary.com/v1_1/${cloudName}/image/upload`, {
+        method: "POST",
+        body: formData,
+      });
+
+      if (!response.ok) {
+        const err = await response.json().catch(() => ({}));
+        throw new Error(err.error?.message || "Failed to upload image");
+      }
+
+      const data = await response.json();
+      const secureUrl: string | undefined = data.secure_url || data.url;
+
+      if (!secureUrl) {
+        throw new Error("Cloudinary did not return an image URL");
+      }
+
+      // Save image URL into MongoDB via backend
+      await menuAPI.update(item.id, { imageUrl: secureUrl });
+
+      // Refresh menu so both admin and customer views get the new image
+      await refreshMenu();
+    } catch (error: any) {
+      console.error("Failed to upload image:", error);
+      window.alert(`Failed to upload image. ${error?.message || ""}`);
+    } finally {
+      setUploadingImageForId(null);
+    }
   };
 
   return (
@@ -266,6 +343,23 @@ const saveEdit = async () => {
                             Edit
                           </button>
                         )}
+                        {/* Image upload button for this item */}
+                        <label className="ms-secondary-cta" style={{ cursor: "pointer" }}>
+                          {uploadingImageForId === item.id ? "Uploading..." : (item.imageUrl ? "Change image" : "Add image")}
+                          <input
+                            type="file"
+                            accept="image/*"
+                            style={{ display: "none" }}
+                            onChange={(e) => {
+                              const file = e.target.files?.[0];
+                              if (file) {
+                                handleUploadImage(item, file);
+                                // Reset the input so the same file can be chosen again if needed
+                                e.target.value = "";
+                              }
+                            }}
+                          />
+                        </label>
                         <button
                           type="button"
                           className="ms-tertiary-cta"

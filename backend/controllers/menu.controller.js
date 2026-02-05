@@ -36,6 +36,61 @@ export const getMenuItems = async (req, res) => {
 };
 
 /**
+ * Create a new menu item
+ *
+ * Used by admin Stocks Management to add new items.
+ * This keeps frontend and MongoDB menu fully in sync.
+ */
+export const createMenuItem = async (req, res) => {
+  try {
+    const {
+      category,
+      name,
+      price,
+      description = '',
+      isAvailable = true,
+      tag,
+      imageUrl
+    } = req.body;
+
+    if (!category || !name || typeof price !== 'number') {
+      return res.status(400).json({
+        success: false,
+        error: 'Category, name, and price are required'
+      });
+    }
+
+    // Generate a stable itemId for frontend compatibility if not provided
+    const itemId =
+      req.body.itemId ||
+      `item-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+
+    const newItem = await MenuItem.create({
+      category,
+      name,
+      price,
+      description,
+      isAvailable,
+      tag,
+      imageUrl,
+      itemId
+    });
+
+    return res.status(201).json({
+      success: true,
+      data: newItem
+    });
+  } catch (error) {
+    console.error('Error creating menu item:', error);
+    return res.status(500).json({
+      success: false,
+      error: 'Failed to create menu item',
+      message: error.message
+    });
+  }
+};
+
+/**
  * Update menu item
  * 
  * Updates a menu item's properties (availability, price, name, etc.).
@@ -95,7 +150,8 @@ export const updateMenuItem = async (req, res) => {
     }
 
     // Update allowed fields only (security: prevent injection of unwanted fields)
-    const allowedFields = ['isAvailable', 'price', 'name', 'description', 'tag'];
+    // Include imageUrl so admin can attach Cloudinary images.
+    const allowedFields = ['isAvailable', 'price', 'name', 'description', 'tag', 'imageUrl'];
     const updateData = {};
     
     for (const field of allowedFields) {
@@ -174,6 +230,57 @@ export const updateMenuItem = async (req, res) => {
     res.status(500).json({
       success: false,
       error: 'Failed to update menu item',
+      message: error.message
+    });
+  }
+};
+
+/**
+ * Delete menu item
+ *
+ * Used by admin Stocks Management to remove items.
+ */
+export const deleteMenuItem = async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    // Validate MongoDB ObjectId format
+    const isValidObjectId = /^[0-9a-fA-F]{24}$/.test(id);
+
+    let documentId = id;
+
+    if (!isValidObjectId) {
+      // Fallback: find by itemId
+      const menuItem = await MenuItem.findOne({ itemId: id });
+      if (!menuItem) {
+        return res.status(404).json({
+          success: false,
+          error: 'Menu item not found',
+          details: `No menu item found with id or itemId: ${id}`
+        });
+      }
+      documentId = menuItem._id.toString();
+    }
+
+    const deleted = await MenuItem.findByIdAndDelete(documentId);
+
+    if (!deleted) {
+      return res.status(404).json({
+        success: false,
+        error: 'Menu item not found',
+        details: `No menu item found with _id: ${documentId}`
+      });
+    }
+
+    return res.status(200).json({
+      success: true,
+      data: deleted
+    });
+  } catch (error) {
+    console.error('Error deleting menu item:', error);
+    return res.status(500).json({
+      success: false,
+      error: 'Failed to delete menu item',
       message: error.message
     });
   }
